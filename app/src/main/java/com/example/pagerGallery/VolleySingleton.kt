@@ -1,4 +1,4 @@
-package com.example.gallery
+package com.example.pagerGallery
 
 import android.content.Context
 import com.android.volley.RequestQueue

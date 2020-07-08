@@ -1,4 +1,4 @@
-package com.example.gallery
+package com.example.pagerGallery
 
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
@@ -8,6 +8,8 @@ data class Pixabay(
     val totalHits:Int,
     val hits: Array<PhotoItem>,
     val total:Int
+
+
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,5 +38,13 @@ data class Pixabay(
     @SerializedName("id")
     val photoId:Int,
     @SerializedName("largeImageURL")
-    val fullUrl:String
+    val fullUrl:String,
+    @SerializedName("webformatHeight")
+    val photoHeight :Int,
+    @SerializedName("user")
+    val photoUser : String,
+    @SerializedName("likes")
+    val photoLikes : Int,
+    @SerializedName("favorites")
+    val photoFavorites: Int
 ) : Parcelable
