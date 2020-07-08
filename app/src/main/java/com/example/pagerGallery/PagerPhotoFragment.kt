@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,11 +18,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.contentValuesOf
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.get
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
 import kotlinx.android.synthetic.main.fragment_pager_photo.*
 import kotlinx.android.synthetic.main.pager_photo_view.view.*
+import kotlinx.coroutines.*
 import java.util.jar.Manifest
 
 
@@ -70,7 +73,7 @@ class PagerPhotoFragment : Fragment() {
                 requestPermissions(arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_WRITE_EXTERNAL_STORAGE)
                 //這裡可以自訂requestCode在第二個參數，此處利用常數REQUEST_WRITE_EXTERNAL_STORAGE
             } else {
-                savePhoto()
+                viewLifecycleOwner.lifecycleScope.launch { savePhoto() }
             }
         }
     }
@@ -86,26 +89,34 @@ class PagerPhotoFragment : Fragment() {
             REQUEST_WRITE_EXTERNAL_STORAGE->{
                 //授權碼不為空且，第一項為PERMISSION_GRANTED時，直接執行
                 if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                    savePhoto()
+                    viewLifecycleOwner.lifecycleScope.launch { savePhoto() }
                 }else{
-                    Toast.makeText(requireContext(),"儲存失敗",Toast.LENGTH_SHORT).show()
+                    MainScope().launch { Toast.makeText(requireContext(),"儲存失敗",Toast.LENGTH_SHORT).show() }
                 }
             }
         }
     }
 
-    private fun savePhoto() {
-        val holder =
-            (viewPager2[0] as RecyclerView).findViewHolderForAdapterPosition(viewPager2.currentItem) as PagerPhotoViewHolder
-        val bitmap : Bitmap = holder.itemView.pager_photo.drawable.toBitmap()
-        val saveUri : Uri? = requireContext().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            ,ContentValues())?: kotlin.run { //判空
-            Toast.makeText(requireContext(),"儲存失敗",Toast.LENGTH_SHORT).show()
-            return//不需要執行下去
+    private suspend fun savePhoto() {
+        withContext(Dispatchers.IO) {
+            val holder =
+                (viewPager2[0] as RecyclerView).findViewHolderForAdapterPosition(viewPager2.currentItem) as PagerPhotoViewHolder
+            val bitmap: Bitmap = holder.itemView.pager_photo.drawable.toBitmap()
+            val saveUri: Uri = requireContext().contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                , ContentValues()
+            ) ?: kotlin.run { //判空
+                MainScope().launch {Toast.makeText(requireContext(), "儲存失敗", Toast.LENGTH_SHORT).show()}
+                return@withContext//Uri為空值時不需要執行下去
+            }
+            requireContext().contentResolver.openOutputStream(saveUri).use {
+                if (bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)) { //圖片檔較大時壓縮要在wordThread進行
+                    MainScope().launch { Toast.makeText(requireContext(),"儲存成功",Toast.LENGTH_SHORT).show() }
+                } else {
+                    MainScope().launch { Toast.makeText(requireContext(),"儲存失敗",Toast.LENGTH_SHORT).show() }
+                }
+            }
         }
-
-
-
     }
 
 
