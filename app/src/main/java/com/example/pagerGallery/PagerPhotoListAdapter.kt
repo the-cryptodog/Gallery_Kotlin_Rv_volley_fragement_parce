@@ -13,11 +13,11 @@ class PagerPhotoListAdapter:ListAdapter<PhotoItem,PagerPhotoViewHolder>(DiffCall
 
     object DiffCallback: DiffUtil.ItemCallback<PhotoItem>() {
         override fun areItemsTheSame(oldItem: PhotoItem, newItem: PhotoItem): Boolean {
-            return oldItem === newItem //判斷為同一的對象
+            return oldItem.photoId == newItem.photoId //判斷為同一的對象
         }
 
         override fun areContentsTheSame(oldItem: PhotoItem, newItem: PhotoItem): Boolean {
-            return oldItem.photoId == newItem.photoId
+            return oldItem == newItem
         }
     }
 
